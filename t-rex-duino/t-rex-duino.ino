@@ -12,12 +12,12 @@
 
 /* Hardware Connections */
 // -- Buttons --
-#define JUMP_BUTTON 6
-#define DUCK_BUTTON 5
+#define JUMP_BUTTON A2
+#define DUCK_BUTTON A1
 
 // -- Display Selection (uncomment ONE of the options) -- 
-#define LCD_SSD1309
-//#define LCD_SH1106      //If you see abnormal vertical line at the left edge of the display, select LCD_SSD1306
+//#define LCD_SSD1309
+#define LCD_SH1106      //If you see abnormal vertical line at the left edge of the display, select LCD_SSD1306
 //#define LCD_SSD1306     //If you see abnormal vertical line at the right edge of the display, select LCD_SH1106
 
 // -- Display Connection for SSD1309 --
@@ -71,6 +71,20 @@
 #include "Cactus.h"
 #include "Pterodactyl.h"
 #include "HeartLive.h"
+
+#include <DFPlayerMini_Fast.h>
+
+#include <SoftwareSerial.h>
+SoftwareSerial mySerial(12, 11); // RX, TX
+
+DFPlayerMini_Fast myMP3;
+
+const int MP3_JUMP = 2;
+const int MP3_DUCK = 3;
+const int MP3_UP = 4;
+const int MP3_GAMEOVER = 5;
+const int MP3_BLINK = 1;
+const int MP3_SPLASH = 6;
 
 /* Defines and globals */
 #define EEPROM_HI_SCORE 16 //2 bytes
@@ -192,6 +206,7 @@ void gameLoop(uint16_t &hiScore) {
       if(gameOver) {
         bitCanvas.render(gameOverSprite);
         bitCanvas.render(restartIconSprite);
+        myMP3.play(MP3_GAMEOVER);
       }
       //update screen
       lcd.fillScreen(lcdBuff, LCD_PART_BUFF_SZ, LCD_IF_VIRTUAL_WIDTH(LCD_PART_BUFF_WIDTH, 0));
@@ -208,6 +223,7 @@ void gameLoop(uint16_t &hiScore) {
     if(!trex.isBlinking() && CollisionDetector::check(trex, enemies.data, enemies.size())) {
       if(lives) {
         trex.blink();
+        myMP3.play(MP3_BLINK);
         --lives;
       } else {
         trex.die();
@@ -218,12 +234,20 @@ void gameLoop(uint16_t &hiScore) {
     if(lives < LIVES_MAX && CollisionDetector::check(trex, heartLive)) {
       ++lives;
       heartLive.eat();
+      myMP3.play(MP3_UP);
     }
 
 #ifndef AUTO_PLAY
     //constrols
     if(isPressedJump()) trex.jump();
     trex.duck(isPressedDuck());
+
+    if (isPressedJump()) {
+      myMP3.play(MP3_JUMP);
+    }
+    if (isPressedDuck()) {
+      myMP3.play(MP3_DUCK);
+    }
 #else
     const int8_t trexXright = trex.bitmap->width + trex.position.x;
     //auto jump
@@ -272,6 +296,7 @@ void spalshScreen() {
   for(uint8_t i = 0; i < LCD_BYTE_SZIE/sizeof(buff); ++i) {
     memcpy_P(buff, splash_screen_bitmap + 2 + uint16_t(i) * sizeof(buff), sizeof(buff));
     lcd.fillScreen(buff, sizeof(buff));
+    myMP3.play(MP3_SPLASH);
   }
   for(uint8_t i = 50; i && !isPressedJump(); --i) delay(100);
 }
@@ -279,7 +304,14 @@ void spalshScreen() {
 void setup() {
   pinMode(JUMP_BUTTON, INPUT_PULLUP);
   pinMode(DUCK_BUTTON, INPUT_PULLUP);
+  
   Serial.begin(250000);
+
+  mySerial.begin(9600);
+  myMP3.begin(mySerial);
+  myMP3.volume(30);
+  delay(20);
+
   lcd.begin();
   spalshScreen();
   lcd.setAddressingMode(LCD_IF_VIRTUAL_WIDTH(lcd.VerticalAddressingMode, lcd.HorizontalAddressingMode));
