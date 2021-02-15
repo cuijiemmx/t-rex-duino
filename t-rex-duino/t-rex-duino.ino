@@ -302,7 +302,14 @@ void spalshScreen() {
     memcpy_P(buff, splash_screen_bitmap + 2 + uint16_t(i) * sizeof(buff), sizeof(buff));
     lcd.fillScreen(buff, sizeof(buff));
   }
+  playStart();
   for(uint8_t i = 50; i && !isPressedJump(); --i) delay(100);
+}
+
+void playStart() {
+  myMP3.waitAvailable(2000);
+  myMP3.volume(30);
+  myMP3.play(MP3_SPLASH);
 }
 
 void setup() {
@@ -312,9 +319,7 @@ void setup() {
   Serial.begin(115200);
   
   mySerial.begin(9600);
-  myMP3.begin(mySerial, false);
-  myMP3.volume(30);
-  myMP3.play(MP3_SPLASH);
+  myMP3.begin(mySerial, false, false);
   
   lcd.begin();
   spalshScreen();
