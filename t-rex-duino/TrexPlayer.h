@@ -57,13 +57,14 @@ struct TrexPlayer : SpriteAnimated {
   }
   void blink() { blinkCnt = PLAYER_SAFE_ZONE_WIDTH; }
   bool isBlinking() { return blinkCnt; }
+  bool isJumping() const { return dy != 0 || vy != 0; }
+  bool isDucking() const { return state == DUCK; }
 
 protected:
   //motion
   int8_t dy = 0;
   int8_t vy = 0;
   bool skipStep = false;
-  bool isJumping() const { return dy != 0 || vy != 0; }
   void motionStep() {
     //dirty fix to prolong the jump
     if(abs(vy) <= 1 && !skipStep) {

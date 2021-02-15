@@ -72,12 +72,12 @@
 #include "Pterodactyl.h"
 #include "HeartLive.h"
 
-#include <DFPlayerMini_Fast.h>
+#include <DFRobotDFPlayerMini.h>
 
 #include <SoftwareSerial.h>
 SoftwareSerial mySerial(12, 11); // RX, TX
 
-DFPlayerMini_Fast myMP3;
+DFRobotDFPlayerMini myMP3;
 
 const int MP3_JUMP = 2;
 const int MP3_DUCK = 3;
@@ -206,7 +206,6 @@ void gameLoop(uint16_t &hiScore) {
       if(gameOver) {
         bitCanvas.render(gameOverSprite);
         bitCanvas.render(restartIconSprite);
-        myMP3.play(MP3_GAMEOVER);
       }
       //update screen
       lcd.fillScreen(lcdBuff, LCD_PART_BUFF_SZ, LCD_IF_VIRTUAL_WIDTH(LCD_PART_BUFF_WIDTH, 0));
@@ -215,6 +214,7 @@ void gameLoop(uint16_t &hiScore) {
 
     //exit game on game over
     if(gameOver) {
+      myMP3.play(MP3_GAMEOVER);
       if(score > hiScore) hiScore = score;
       return;
     }
@@ -239,14 +239,19 @@ void gameLoop(uint16_t &hiScore) {
 
 #ifndef AUTO_PLAY
     //constrols
-    if(isPressedJump()) trex.jump();
-    trex.duck(isPressedDuck());
-
-    if (isPressedJump()) {
-      myMP3.play(MP3_JUMP);
+    if(isPressedJump()) {
+      if (!trex.isJumping()) {
+        myMP3.play(MP3_JUMP);
+      }
+      trex.jump();
     }
     if (isPressedDuck()) {
-      myMP3.play(MP3_DUCK);
+      if (!trex.isDucking()) {
+        myMP3.play(MP3_DUCK);  
+      }
+      trex.duck(true);
+    } else {
+      trex.duck(false);
     }
 #else
     const int8_t trexXright = trex.bitmap->width + trex.position.x;
@@ -296,7 +301,6 @@ void spalshScreen() {
   for(uint8_t i = 0; i < LCD_BYTE_SZIE/sizeof(buff); ++i) {
     memcpy_P(buff, splash_screen_bitmap + 2 + uint16_t(i) * sizeof(buff), sizeof(buff));
     lcd.fillScreen(buff, sizeof(buff));
-    myMP3.play(MP3_SPLASH);
   }
   for(uint8_t i = 50; i && !isPressedJump(); --i) delay(100);
 }
@@ -305,13 +309,13 @@ void setup() {
   pinMode(JUMP_BUTTON, INPUT_PULLUP);
   pinMode(DUCK_BUTTON, INPUT_PULLUP);
   
-  Serial.begin(250000);
-
+  Serial.begin(115200);
+  
   mySerial.begin(9600);
-  myMP3.begin(mySerial);
+  myMP3.begin(mySerial, false);
   myMP3.volume(30);
-  delay(20);
-
+  myMP3.play(MP3_SPLASH);
+  
   lcd.begin();
   spalshScreen();
   lcd.setAddressingMode(LCD_IF_VIRTUAL_WIDTH(lcd.VerticalAddressingMode, lcd.HorizontalAddressingMode));
