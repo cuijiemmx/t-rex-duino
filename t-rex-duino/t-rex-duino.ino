@@ -302,8 +302,13 @@ void spalshScreen() {
     memcpy_P(buff, splash_screen_bitmap + 2 + uint16_t(i) * sizeof(buff), sizeof(buff));
     lcd.fillScreen(buff, sizeof(buff));
   }
+  unsigned long time = millis();
   playStart();
-  for(uint8_t i = 50; i && !isPressedJump(); --i) delay(100);
+  unsigned long diff = millis() - time;
+  int c = diff / 100;
+  if (c < 50) {
+    for(uint8_t i = 50 - c; i && !isPressedJump(); --i) delay(100);  
+  }
 }
 
 void playStart() {
